@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>24hs de Casa de Oración - Turnos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: dark;
+      --bg-main: #111216;
+      --bg-card: #18181c;
+      --bg-card-soft: #202125;
+      --gold: #f6c544;
+      --gold-soft: #e0b23a;
+      --text-main: #f5f5f5;
+      --text-muted: #c4c4c4;
+      --border-soft: #3a3b40;
+      --danger: #ff5b5b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #323338 0, #111216 55%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 960px;
+      padding: 12px 12px 72px; /* espacio para la barra fija inferior */
+    }
+
+    /* HEADER (sin cambios de tamaño) */
+    .hero {
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+    }
+
+    .hero img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+      border: 1px solid var(--border-soft);
+    }
+
+    /* BARRA DE NOMBRE COMPACTA */
+    .card-compact {
+      padding: 6px 10px;
+    }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .user-label-inline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .user-name-inline {
+      font-size: 0.9rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .user-name-inline.empty {
+      opacity: 0.6;
+      font-style: italic;
+    }
+
+    .btn-tiny {
+      font-size: 0.72rem;
+      padding: 4px 8px;
+    }
+
+    /* CARD TURNOS */
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(246, 197, 68, 0.9);
+      opacity: 0.95;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .small-text {
+      font-size: 0.78rem;
+      opacity: 0.85;
+      color: var(--text-muted);
+    }
+
+    /* BOTONES GENÉRICOS */
+    button {
+      cursor: pointer;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: transparent;
+      color: var(--text-main);
+      font-weight: 500;
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      transition: background 0.08s ease, transform 0.08s ease, opacity 0.1s;
+      white-space: nowrap;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+      transform: none;
+    }
+
+    .btn-primary {
+      border-color: var(--gold-soft);
+      color: var(--gold);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: rgba(246, 197, 68, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      color: var(--text-muted);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.03);
+      transform: translateY(-1px);
+    }
+
+    .btn-small {
+      font-size: 0.78rem;
+      padding: 5px 9px;
+    }
+
+    /* LISTA DE TURNOS */
+    .slots-list {
+      margin-top: 6px;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .slot-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 7px 9px;
+      border-radius: 10px;
+      background: var(--bg-card-soft);
+      border: 1px solid var(--border-soft);
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .slot-item::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: radial-gradient(circle at top left, rgba(246, 197, 68, 0.10), transparent 65%);
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    .slot-item.mine::before {
+      opacity: 0.7;
+    }
+
+    .slot-item.selected {
+      border-color: var(--gold-soft);
+      box-shadow: 0 0 0 1px rgba(246, 197, 68, 0.6);
+    }
+
+    .slot-time {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #ffffff;
+    }
+
+    .slot-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .slot-status.libre {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .names-list {
+      font-size: 0.8rem;
+    }
+
+    .names-list .my-name {
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    .names-list .my-name::after {
+      content: " (vos)";
+      font-size: 0.72rem;
+      opacity: 0.95;
+    }
+
+    /* BOTÓN FLOTANTE "MI TURNO" */
+    .my-slot-btn {
+      position: fixed;
+      right: 12px;
+      bottom: 80px; /* un poco más arriba por la barra fija */
+      z-index: 40;
+      background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+      color: #111216;
+      border: none;
+      font-weight: 700;
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+    }
+
+    .my-slot-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.97;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* BARRA FIJA DE ACCIÓN ABAJO */
+    .action-bar-container {
+      position: fixed;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 960px;
+      padding: 0 12px;
+      z-index: 45;
+      pointer-events: none;
+    }
+
+    .action-bar {
+      background: rgba(15, 15, 20, 0.96);
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .action-info {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal {
+      background: #14151a;
+      border-radius: 18px;
+      padding: 16px 16px 12px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--border-soft);
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .modal-text {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .modal-input-group {
+      margin-bottom: 10px;
+    }
+
+    .modal-input-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .modal-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg-card-soft);
+      padding: 7px 10px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .modal-input:focus {
+      border-color: var(--gold-soft);
+    }
+
+    .modal-error {
+      font-size: 0.75rem;
+      color: var(--danger);
+      min-height: 16px;
+      margin-bottom: 4px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 40px;
+      transform: translateX(-50%);
+      background: rgba(19, 20, 26, 0.96);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.78rem;
+      color: var(--text-main);
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      z-index: 44;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      .card {
+        padding: 9px 10px;
+      }
+      .slot-item {
+        padding: 7px 8px;
+      }
+      .my-slot-btn {
+        right: 10px;
+        bottom: 76px;
+      }
+      .action-bar {
+        padding: 6px 9px;
+      }
+      .action-info {
+        font-size: 0.72rem;
+      }
+      .btn-small {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Encabezado -->
+    <div class="hero">
+      <img src="encabezado.JPG" alt="24hs Casa de Oración" loading="lazy" />
+    </div>
+
+    <!-- Barra compacta de nombre -->
+    <div class="card card-compact">
+      <div class="user-bar">
+        <!-- CAMBIO DE TEXTO AQUÍ -->
+        <span class="user-label-inline">NOMBRE Y APELLIDO:</span>
+        <span id="currentUserLabel" class="user-name-inline empty">Sin nombre aún</span>
+        <button id="changeNameBtn" class="btn-secondary btn-tiny" type="button">Cambiar</button>
+      </div>
+    </div>
+
+    <!-- Tarjeta: Turnos -->
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Turnos disponibles</div>
+        <span class="badge">1 hora</span>
+      </div>
+      <div class="small-text">
+        Tocá un turno para seleccionarlo y luego elegí una acción abajo.
+      </div>
+      <div class="slots-list" id="slotsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Botón flotante "Mi turno" -->
+  <button id="mySlotBtn" class="my-slot-btn hidden">Ir a mi turno</button>
+
+  <!-- Barra fija inferior de acciones -->
+  <div class="action-bar-container">
+    <div id="actionBar" class="action-bar hidden">
+      <div id="selectedSlotLabel" class="action-info">
+        Ningún turno seleccionado
+      </div>
+      <div class="action-buttons">
+        <button id="btnClaim" class="btn-primary btn-small" type="button" disabled>Anotarme</button>
+        <button id="btnRelease" class="btn-secondary btn-small" type="button" disabled>Quitar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para nombre -->
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-title">Escribí tu nombre</div>
+      <div class="modal-text">
+        Este nombre se usará para todos los turnos donde te anotes.
+      </div>
+
+      <div class="modal-input-group">
+        <label class="modal-input-label" for="nameInput">Nombre y/o apellido</label>
+        <input id="nameInput" class="modal-input" type="text" maxlength="40" autocomplete="name" />
+      </div>
+
+      <div id="modalError" class="modal-error"></div>
+
+      <div class="modal-actions">
+        <button id="cancelModalBtn" class="btn-secondary btn-small" type="button">Cancelar</button>
+        <button id="saveNameBtn" class="btn-primary btn-small" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // 🔥 1) CONFIGURACIÓN FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyAcvdWNX8_2BJJfNR4a6nvcVSh6FqCuqSk",
+      authDomain: "hs-oracion-d6103.firebaseapp.com",
+      projectId: "hs-oracion-d6103",
+      storageBucket: "hs-oracion-d6103.firebasestorage.app",
+      messagingSenderId: "807750611276",
+      appId: "1:807750611276:web:e6948c0fbbb320a1311fe9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 📅 CONFIG DEL EVENTO
+    const EVENT_ID = "casa-oracion-24hs-2025";
+    const START_ISO_LOCAL = "2025-11-28T17:00:00";
+    const NUM_HOURS = 24;
+
+    // UI ELEMENTOS
+    const slotsContainer = document.getElementById("slotsContainer");
+    const mySlotBtn = document.getElementById("mySlotBtn");
+    const currentUserLabel = document.getElementById("currentUserLabel");
+    const changeNameBtn = document.getElementById("changeNameBtn");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const nameInput = document.getElementById("nameInput");
+    const modalError = document.getElementById("modalError");
+    const saveNameBtn = document.getElementById("saveNameBtn");
+    const cancelModalBtn = document.getElementById("cancelModalBtn");
+    const toastEl = document.getElementById("toast");
+
+    const actionBar = document.getElementById("actionBar");
+    const selectedSlotLabel = document.getElementById("selectedSlotLabel");
+    const btnClaim = document.getElementById("btnClaim");
+    const btnRelease = document.getElementById("btnRelease");
+
+    const LOCALSTORAGE_KEY = "24hs_oracion_nombre";
+
+    // Estado
+    const slotsMeta = {};
+    const slotsState = {};
+    const mySlots = new Set();
+
+    let currentUserName = null;
+    let currentUserNameLower = null;
+    let selectedSlotId = null;
+    let pendingAction = null; // función
+
+    /* ---------- UTILIDADES ---------- */
+
+    function showToast(message) {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.remove("hidden");
+      setTimeout(function () {
+        toastEl.classList.add("hidden");
+      }, 2600);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatSlotLabel(from, to) {
+      const weekdays = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+      const weekday = weekdays[from.getDay()];
+      const day = String(from.getDate()).padStart(2, "0");
+      const month = String(from.getMonth() + 1).padStart(2, "0");
+      const fromHour = from.getHours();
+      const toHour = to.getHours();
+
+      return `${weekday} ${day}/${month} · ${fromHour}hs – ${toHour}hs`;
+    }
+
+    function setCurrentUserName(name) {
+      currentUserName = name || null;
+      currentUserNameLower = currentUserName
+        ? currentUserName.trim().toLowerCase()
+        : null;
+
+      if (!currentUserName) {
+        currentUserLabel.textContent = "Sin nombre aún";
+        currentUserLabel.classList.add("empty");
+      } else {
+        currentUserLabel.textContent = currentUserName;
+        currentUserLabel.classList.remove("empty");
+      }
+
+      reapplyAllSlots();
+      updateMySlotButton();
+      updateActionBarState();
+    }
+
+    function reapplyAllSlots() {
+      Object.keys(slotsState).forEach(function (slotId) {
+        applySlotState(slotId, slotsState[slotId]);
+      });
+    }
+
+    function ensureUserNameAndContinue(action) {
+      if (currentUserName && currentUserName.trim().length >= 2) {
+        action();
+        return;
+      }
+      pendingAction = action;
+      openNameModal();
+    }
+
+    function hasMyNameInSlot(slotId) {
+      if (!currentUserNameLower) return false;
+      const arr = slotsState[slotId] || [];
+      return arr.some(function (n) {
+        return String(n).trim().toLowerCase() === currentUserNameLower;
+      });
+    }
+
+    /* ---------- MODAL NOMBRE ---------- */
+
+    function openNameModal() {
+      modalError.textContent = "";
+      nameInput.value = currentUserName || "";
+      modalBackdrop.classList.remove("hidden");
+      setTimeout(function () {
+        nameInput.focus();
+      }, 20);
+    }
+
+    function closeNameModal() {
+      modalBackdrop.classList.add("hidden");
+      pendingAction = null;
+    }
+
+    function handleSaveName() {
+      const val = (nameInput.value || "").trim();
+      if (val.length < 2) {
+        modalError.textContent = "El nombre debe tener al menos 2 caracteres.";
+        return;
+      }
+      if (val.length > 40) {
+        modalError.textContent = "Máximo 40 caracteres.";
+        return;
+      }
+
+      localStorage.setItem(LOCALSTORAGE_KEY, val);
+      setCurrentUserName(val);
+      closeNameModal();
+
+      if (typeof pendingAction === "function") {
+        const fn = pendingAction;
+        pendingAction = null;
+        fn();
+      }
+    }
+
+    /* ---------- SLOTS UI ---------- */
+
+    function buildSlotsUI() {
+      slotsContainer.innerHTML = "";
+      const start = new Date(START_ISO_LOCAL);
+
+      for (let i = 0; i < NUM_HOURS; i++) {
+        const from = new Date(start.getTime() + i * 60 * 60 * 1000);
+        const to = new Date(start.getTime() + (i + 1) * 60 * 60 * 1000);
+        const slotId = String(i).padStart(2, "0");
+        const label = formatSlotLabel(from, to);
+
+        slotsMeta[slotId] = label;
+
+        const item = document.createElement("div");
+        item.className = "slot-item";
+        item.dataset.slotId = slotId;
+
+        const timeEl = document.createElement("div");
+        timeEl.className = "slot-time";
+        timeEl.textContent = label;
+
+        const statusEl = document.createElement("div");
+        statusEl.className = "slot-status libre";
+        statusEl.textContent = "Libre";
+
+        item.appendChild(timeEl);
+        item.appendChild(statusEl);
+
+        item.addEventListener("click", function () {
+          handleSelectSlot(slotId);
+        });
+
+        slotsContainer.appendChild(item);
+      }
+    }
+
+    function handleSelectSlot(slotId) {
+      if (!slotId) return;
+      selectedSlotId = slotId;
+
+      const items = slotsContainer.querySelectorAll(".slot-item");
+      items.forEach(function (el) {
+        if (el.dataset.slotId === slotId) {
+          el.classList.add("selected");
+        } else {
+          el.classList.remove("selected");
+        }
+      });
+
+      updateActionBarState();
+    }
+
+    function applySlotState(slotId, nombres) {
+      const item = slotsContainer.querySelector('[data-slot-id="' + slotId + '"]');
+      if (!item) return;
+
+      const statusEl = item.querySelector(".slot-status");
+      if (!statusEl) return;
+
+      const normalized = Array.isArray(nombres) ? nombres : [];
+      slotsState[slotId] = normalized;
+
+      let hasMe = false;
+
+      if (normalized.length === 0) {
+        statusEl.textContent = "Libre";
+        statusEl.classList.add("libre");
+        item.classList.remove("mine");
+        mySlots.delete(slotId);
+      } else {
+        statusEl.classList.remove("libre");
+        const pieces = normalized.map(function (n) {
+          const safe = escapeHtml(n);
+          if (
+            currentUserNameLower &&
+            String(n).trim().toLowerCase() === currentUserNameLower
+          ) {
+            hasMe = true;
+            return '<span class="my-name">' + safe + "</span>";
+          }
+          return safe;
+        });
+
+        statusEl.innerHTML =
+          'Anotados: <span class="names-list">' + pieces.join(", ") + "</span>";
+
+        if (hasMe) {
+          item.classList.add("mine");
+          mySlots.add(slotId);
+        } else {
+          item.classList.remove("mine");
+          mySlots.delete(slotId);
+        }
+      }
+
+      updateMySlotButton();
+      updateActionBarState();
+    }
+
+    function updateMySlotButton() {
+      if (!currentUserName || mySlots.size === 0) {
+        mySlotBtn.classList.add("hidden");
+        return;
+      }
+      mySlotBtn.classList.remove("hidden");
+    }
+
+    // 🔧 AQUÍ ESTÁ EL CAMBIO IMPORTANTE PARA "QUITAR"
+    function updateActionBarState() {
+      if (!selectedSlotId || !slotsMeta[selectedSlotId]) {
+        actionBar.classList.add("hidden");
+        btnClaim.disabled = true;
+        btnRelease.disabled = true;
+        selectedSlotLabel.textContent = "Ningún turno seleccionado";
+        return;
+      }
+
+      actionBar.classList.remove("hidden");
+      const label = slotsMeta[selectedSlotId];
+      selectedSlotLabel.textContent = "Turno: " + label;
+
+      // "Anotarme" siempre habilitado si hay nombre
+      btnClaim.disabled = !currentUserName;
+
+      // "Quitar" habilitado mientras haya nombre y turno seleccionado
+      // (aunque después el server responda que no estás en ese turno)
+      btnRelease.disabled = !currentUserName;
+    }
+
+    /* ---------- FIREBASE ---------- */
+
+    function listenSlotsRealtime() {
+      const slotsRef = db
+        .collection("events")
+        .doc(EVENT_ID)
+        .collection("slots");
+
+      slotsRef.onSnapshot(function (snapshot) {
+        snapshot.docChanges().forEach(function (change) {
+          const slotId = change.doc.id;
+          const data = change.doc.data() || {};
+          const nombres = Array.isArray(data.nombres) ? data.nombres : [];
+
+          if (change.type === "removed") {
+            applySlotState(slotId, []);
+          } else {
+            applySlotState(slotId, nombres);
+          }
+        });
+      });
+    }
+
+    function claimSlot(slotId) {
+      if (!currentUserName) return;
+      if (!slotsMeta[slotId]) return;
+
+      const label = slotsMeta[slotId];
+      const cleanName = currentUserName.trim().slice(0, 40);
+      const slotRef = db
+        .collection("events")
+        .doc(EVENT_ID)
+        .collection("slots")
+        .doc(slotId);
+
+      slotRef
+        .set(
+          {
+            label: label,
+            nombres: firebase.firestore.FieldValue.arrayUnion(cleanName),
+          },
+          { merge: true }
+        )
+        .then(function () {
+          showToast("Te anotaste en " + label);
+        })
+        .catch(function (err) {
+          console.error(err);
+          showToast("Hubo un error al anotarte. Probá de nuevo.");
+        });
+    }
+
+    function releaseSlot(slotId) {
+      if (!currentUserNameLower) return;
+      if (!slotsMeta[slotId]) return;
+
+      const label = slotsMeta[slotId];
+      const slotRef = db
+        .collection("events")
+        .doc(EVENT_ID)
+        .collection("slots")
+        .doc(slotId);
+
+      db.runTransaction(function (tx) {
+        return tx.get(slotRef).then(function (doc) {
+          if (!doc.exists) throw new Error("no_slot");
+
+          const data = doc.data() || {};
+          const arr = Array.isArray(data.nombres) ? data.nombres.slice() : [];
+          const idx = arr.findIndex(function (n) {
+            return String(n).trim().toLowerCase() === currentUserNameLower;
+          });
+
+          if (idx === -1) throw new Error("name_not_found");
+
+          arr.splice(idx, 1);
+
+          tx.set(
+            slotRef,
+            {
+              label: label,
+              nombres: arr,
+            },
+            { merge: true }
+          );
+        });
+      })
+        .then(function () {
+          showToast("Se quitó tu nombre de " + label);
+        })
+        .catch(function (err) {
+          if (err.message === "no_slot" || err.message === "name_not_found") {
+            showToast("No encontré tu nombre en ese turno.");
+          } else {
+            console.error(err);
+            showToast("Hubo un error al quitar tu nombre.");
+          }
+        });
+    }
+
+    /* ---------- EVENTOS UI ---------- */
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const storedName = localStorage.getItem(LOCALSTORAGE_KEY);
+      if (storedName && storedName.trim().length >= 2) {
+        setCurrentUserName(storedName.trim());
+      } else {
+        setCurrentUserName(null);
+      }
+
+      buildSlotsUI();
+      listenSlotsRealtime();
+
+      changeNameBtn.addEventListener("click", openNameModal);
+      saveNameBtn.addEventListener("click", handleSaveName);
+      cancelModalBtn.addEventListener("click", closeNameModal);
+
+      modalBackdrop.addEventListener("click", function (e) {
+        if (e.target === modalBackdrop) {
+          closeNameModal();
+        }
+      });
+
+      mySlotBtn.addEventListener("click", function () {
+        if (mySlots.size === 0) return;
+        const ids = Array.from(mySlots).sort();
+        const targetId = ids[0];
+        const item = slotsContainer.querySelector(
+          '[data-slot-id="' + targetId + '"]'
+        );
+        if (item) {
+          item.scrollIntoView({ behavior: "smooth", block: "center" });
+          handleSelectSlot(targetId);
+        }
+      });
+
+      btnClaim.addEventListener("click", function () {
+        if (!selectedSlotId) return;
+        ensureUserNameAndContinue(function () {
+          claimSlot(selectedSlotId);
+        });
+      });
+
+      btnRelease.addEventListener("click", function () {
+        if (!selectedSlotId) return;
+        ensureUserNameAndContinue(function () {
+          releaseSlot(selectedSlotId);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
